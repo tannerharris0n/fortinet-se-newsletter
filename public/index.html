@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fortinet SE Newsletter Builder</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">●</span>
+      Fortinet SE Newsletter <span class="brand-sub">Builder</span>
+    </div>
+    <div class="actions">
+      <button id="btn-generate" class="btn btn-ghost" hidden>✨ Generate with AI</button>
+      <button id="btn-html" class="btn">Copy HTML email</button>
+      <button id="btn-html-dl" class="btn">Download .html</button>
+      <button id="btn-docx" class="btn btn-primary">Export Word (.docx)</button>
+      <button id="btn-reset" class="btn btn-quiet" title="Clear everything and start fresh">Reset</button>
+    </div>
+  </header>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <main class="layout">
+    <!-- EDITOR -->
+    <section class="editor" id="editor">
+      <div class="row two">
+        <label>Month <input id="f-month" type="text" placeholder="June" /></label>
+        <label>Year <input id="f-year" type="text" placeholder="2026" /></label>
+      </div>
+
+      <fieldset>
+        <legend>Lead paragraph</legend>
+        <textarea id="f-lead" rows="4" placeholder="3–5 sentences tying the top story to a broader defender takeaway."></textarea>
+      </fieldset>
+
+      <fieldset>
+        <legend>Top Fortinet News <button class="add" data-add="news">+ add</button></legend>
+        <div id="list-news" class="list"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Firmware released <button class="add" data-add="firmware">+ add row</button></legend>
+        <div id="list-firmware" class="list compact"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>RapidFire Q&amp;A</legend>
+        <div class="row two">
+          <label>Date <input id="f-rf-date" type="text" placeholder="June 12" /></label>
+          <label>Time <input id="f-rf-time" type="text" placeholder="11:30 AM PT" /></label>
+        </div>
+        <label>Tools/Tips/Tricks topic (this month's demo)
+          <input id="f-rf-topic" type="text" placeholder="e.g. FortiGate ZTNA tags in 7.6" /></label>
+        <label>Registration link <input id="f-rf-reg" type="url" placeholder="https://..." /></label>
+        <label>Tips teaser sentence (leave blank for SE to fill)
+          <textarea id="f-tips" rows="2" placeholder="One sentence naming this month's demo topic."></textarea></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Other events &amp; webinars <button class="add" data-add="events">+ add</button></legend>
+        <div id="list-events" class="list"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Evergreen blocks <span class="hint">(preserved each month — edit verbatim text)</span></legend>
+        <div class="ever">
+          <strong>Fortinet Fast Tracks</strong>
+          <label>Title <input id="f-ft-title" type="text" /></label>
+          <label>Body <textarea id="f-ft-body" rows="2"></textarea></label>
+          <label>Link <input id="f-ft-link" type="url" /></label>
+        </div>
+        <div class="ever">
+          <strong>NSE Training</strong>
+          <label>Title <input id="f-nse-title" type="text" /></label>
+          <label>Body <textarea id="f-nse-body" rows="2"></textarea></label>
+          <label>Link <input id="f-nse-link" type="url" /></label>
+        </div>
+      </fieldset>
+
+      <p class="disclaimer">
+        Personal side project — not affiliated with, endorsed by, or sponsored by Fortinet, Inc.
+        All product names and brands are property of their respective owners. Content is compiled
+        from publicly available Fortinet sources.
+      </p>
+    </section>
+
+    <!-- PREVIEW -->
+    <section class="preview">
+      <div class="preview-head">Live preview</div>
+      <iframe id="preview-frame" title="Newsletter preview"></iframe>
+    </section>
+  </main>
+
+  <script src="template.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
