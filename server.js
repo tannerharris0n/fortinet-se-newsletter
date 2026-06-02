@@ -23,38 +23,24 @@ const PORT = process.env.PORT || 3000;
 const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-6';
 const AI_ENABLED = Boolean(process.env.ANTHROPIC_API_KEY);
 
-// Optional access gate. If APP_PASSWORD is set, the WHOLE app (pages + APIs)
-// requires HTTP Basic auth — this protects the paid /api/generate route on a
-// public deploy. If unset, the app is open (so forks work with zero config).
-const AUTH_USER = process.env.APP_USER || 'admin';
-const AUTH_PASS = process.env.APP_PASSWORD || '';
+// The editor and Word/HTML exports are always open. Only the PAID "Generate with
+// AI" route is gated: if AI_PASSWORD is set, callers must supply it. This stops
+// strangers on a public URL from running up your Claude bill, while leaving the
+// rest of the app usable by other SEs.
+const AI_PASSWORD = process.env.AI_PASSWORD || '';
 
-app.use(express.json({ limit: '2mb' }));
-
-if (AUTH_PASS) {
-  // Constant-time compare via fixed-length digests (avoids length leaks/throws).
+// Constant-time password check via fixed-length digests.
+function aiPasswordOk(supplied) {
   const digest = (s) => crypto.createHash('sha256').update(String(s)).digest();
-  const matches = (a, b) => crypto.timingSafeEqual(digest(a), digest(b));
-
-  app.use((req, res, next) => {
-    const header = req.headers.authorization || '';
-    if (header.startsWith('Basic ')) {
-      const decoded = Buffer.from(header.slice(6), 'base64').toString('utf8');
-      const i = decoded.indexOf(':');
-      const user = decoded.slice(0, i);
-      const pass = decoded.slice(i + 1);
-      if (matches(user, AUTH_USER) && matches(pass, AUTH_PASS)) return next();
-    }
-    res.set('WWW-Authenticate', 'Basic realm="Fortinet SE Newsletter", charset="UTF-8"');
-    return res.status(401).send('Authentication required.');
-  });
+  return crypto.timingSafeEqual(digest(supplied || ''), digest(AI_PASSWORD));
 }
 
+app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Does the frontend get a "Generate with AI" button?
+// Tells the frontend whether to show the AI button and whether it needs a password.
 app.get('/api/config', (req, res) => {
-  res.json({ aiEnabled: AI_ENABLED, model: AI_ENABLED ? MODEL : null });
+  res.json({ aiEnabled: AI_ENABLED, aiGated: Boolean(AI_PASSWORD), model: AI_ENABLED ? MODEL : null });
 });
 
 // Export the posted newsletter JSON as a .docx download.
@@ -77,6 +63,10 @@ app.post('/api/export/docx', async (req, res) => {
 app.post('/api/generate', async (req, res) => {
   if (!AI_ENABLED) {
     return res.status(400).json({ error: 'AI generation is disabled. Set ANTHROPIC_API_KEY to enable it.' });
+  }
+  // Gate the paid route.
+  if (AI_PASSWORD && !aiPasswordOk(req.headers['x-ai-password'])) {
+    return res.status(401).json({ error: 'Incorrect or missing AI password.' });
   }
   const { month, year } = req.body || {};
   if (!month || !year) return res.status(400).json({ error: 'month and year are required.' });
@@ -138,5 +128,7 @@ function extractJSON(text) {
 app.listen(PORT, () => {
   console.log(`Fortinet SE Newsletter running on http://localhost:${PORT}`);
   console.log(`AI generation: ${AI_ENABLED ? 'ENABLED (' + MODEL + ')' : 'disabled (set ANTHROPIC_API_KEY to enable)'}`);
-  console.log(`Access gate: ${AUTH_PASS ? 'ON (Basic auth, user "' + AUTH_USER + '")' : 'OFF (set APP_PASSWORD to require login)'}`);
+  if (AI_ENABLED) {
+    console.log(`AI gate: ${AI_PASSWORD ? 'ON (password required to generate)' : 'OFF — WARNING: anyone can trigger paid generation; set AI_PASSWORD on a public deploy'}`);
+  }
 });

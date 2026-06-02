@@ -39,22 +39,14 @@
   function syncE4() { $('e4-fields').style.display = state.events.event4.enabled ? '' : 'none'; }
 
   function bindAll() {
-    var d = state, L = d.lead, T = d.tips, RF = d.rapidFire, ev = d.events,
+    var d = state, T = d.tips, RF = d.rapidFire, ev = d.events,
         e2 = ev.event2, e3 = ev.event3, e4 = ev.event4;
 
     bind('f-month', function () { return d.month; }, function (v) { d.month = v; });
     bind('f-year', function () { return d.year; }, function (v) { d.year = v; });
     bind('f-recipient', function () { return d.recipient; }, function (v) { d.recipient = v; });
 
-    bind('f-l-headline', function () { return L.headline; }, function (v) { L.headline = v; });
-    bind('f-l-elaboration', function () { return L.elaboration; }, function (v) { L.elaboration = v; });
-    bind('f-l-takeaway', function () { return L.takeaway; }, function (v) { L.takeaway = v; });
-    bind('f-l-s2h', function () { return L.story2Headline; }, function (v) { L.story2Headline = v; });
-    bind('f-l-s2s', function () { return L.story2Summary; }, function (v) { L.story2Summary = v; });
-    bind('f-l-s2q', function () { return L.story2Quote; }, function (v) { L.story2Quote = v; });
-    bind('f-l-s3w', function () { return L.story3What; }, function (v) { L.story3What = v; });
-    bind('f-l-s3m', function () { return L.story3Models; }, function (v) { L.story3Models = v; });
-    bind('f-l-s3b', function () { return L.story3Benefits; }, function (v) { L.story3Benefits = v; });
+    bind('f-leadblurb', function () { return d.leadBlurb; }, function (v) { d.leadBlurb = v; });
 
     bind('f-rf-weekday', function () { return RF.weekday; }, function (v) { RF.weekday = v; });
     bind('f-rf-monthday', function () { return RF.monthDay; }, function (v) { RF.monthDay = v; });
@@ -152,15 +144,32 @@
   }
 
   // ---- AI ----
+  var AI_PW_KEY = 'fortinet-ai-password';
+  var aiGated = false;
+
   async function generate() {
-    if (!confirm('Generate this month\'s content with AI? This overwrites the Lead, News, Firmware, Events and RapidFire date (your signature and the fixed template blocks are kept).')) return;
+    if (!confirm('Generate this month\'s content with AI? This overwrites the intro blurb, News, Firmware, Events and RapidFire date (your signature and the fixed template blocks are kept).')) return;
+
+    // If the AI route is password-protected, collect/recall the password.
+    var headers = { 'Content-Type': 'application/json' };
+    if (aiGated) {
+      var pw = localStorage.getItem(AI_PW_KEY);
+      if (!pw) {
+        pw = prompt('Enter the AI password to generate (set by the site owner):');
+        if (!pw) return;
+        localStorage.setItem(AI_PW_KEY, pw);
+      }
+      headers['x-ai-password'] = pw;
+    }
+
     var btn = $('btn-generate'); btn.disabled = true; var label = btn.textContent; btn.textContent = '✨ Researching…';
     try {
-      var resp = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month: state.month, year: state.year }) });
+      var resp = await fetch('/api/generate', { method: 'POST', headers: headers, body: JSON.stringify({ month: state.month, year: state.year }) });
       var out = await resp.json();
+      if (resp.status === 401) { localStorage.removeItem(AI_PW_KEY); throw new Error('AI password rejected — try again.'); }
       if (!resp.ok || !out.data) throw new Error(out.error || 'generation failed');
       var d = out.data;
-      if (d.lead) state.lead = Object.assign({}, state.lead, d.lead);
+      if (d.leadBlurb != null) state.leadBlurb = d.leadBlurb;
       if (d.tips) state.tips = Object.assign({}, state.tips, d.tips);
       if (d.rapidFire) state.rapidFire = Object.assign({}, state.rapidFire, d.rapidFire);
       if (Array.isArray(d.news) && d.news.length) state.news = d.news;
@@ -189,7 +198,11 @@
   $('btn-generate').addEventListener('click', generate);
 
   fetch('/api/config').then(function (r) { return r.json(); }).then(function (cfg) {
-    if (cfg.aiEnabled) $('btn-generate').hidden = false;
+    aiGated = !!cfg.aiGated;
+    if (cfg.aiEnabled) {
+      $('btn-generate').hidden = false;
+      if (aiGated) $('btn-generate').title = 'Requires the AI password set by the site owner';
+    }
   }).catch(function () {});
 
   bindAll();

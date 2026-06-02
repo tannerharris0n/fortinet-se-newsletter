@@ -34,11 +34,7 @@
       month: MONTHS[mi],
       year: String(year),
       recipient: 'everyone',
-      lead: {
-        headline: '', elaboration: '', takeaway: '',
-        story2Headline: '', story2Summary: '', story2Quote: '',
-        story3What: '', story3Models: '', story3Benefits: ''
-      },
+      leadBlurb: '',
       tips: { topic: '', rfTopic: '', seOutcome: '' },
       rapidFire: { weekday: weekday, monthDay: MONTHS[mi] + ' ' + rf.getDate() },
       news: [
@@ -69,7 +65,7 @@
 
   function render(data) {
     data = data || defaults();
-    var L = data.lead || {}, T = data.tips || {}, RF = data.rapidFire || {};
+    var T = data.tips || {}, RF = data.rapidFire || {};
     var news = data.news || [], ev = data.events || {}, e2 = ev.event2 || {}, e3 = ev.event3 || {}, e4 = ev.event4 || {};
 
     var p = 'margin:0 0 12px;font-size:14px;line-height:1.6;color:' + INK + ';';
@@ -107,18 +103,8 @@
 
   '<p style="' + p + '">Hello ' + ph(data.recipient, 'everyone') + ',</p>' +
 
-  // lead paragraph 1
-  '<p style="' + p + '">In this month\'s Fortinet SE Newsletter, we lead with ' + ph(L.headline, '[lead story headline]') +
-    '. ' + ph(L.elaboration, '[2–3 sentence elaboration]') +
-    '. The takeaway for defenders: ' + ph(L.takeaway, '[1 sentence implication]') + '.</p>' +
-  // lead paragraph 2
-  '<p style="' + p + '">We are also excited to share that ' + ph(L.story2Headline, '[story 2 / partnership]') +
-    '. ' + ph(L.story2Summary, '[2–3 sentence summary]') +
-    (has(L.story2Quote) ? ' ' + esc(L.story2Quote) : '') + '</p>' +
-  // lead paragraph 3
-  '<p style="' + p + '">We are also announcing ' + ph(L.story3What, '[story 3 / new product]') +
-    ' — ' + ph(L.story3Models, '[model names]') +
-    ' — delivering ' + ph(L.story3Benefits, '[3 key benefits]') + '.</p>' +
+  // lead — short intro blurb
+  '<p style="' + p + '">' + (has(data.leadBlurb) ? nl2br(data.leadBlurb) : '<span style="color:' + MUTED + ';font-style:italic;">[short intro blurb — 1–3 sentences setting up the month]</span>') + '</p>' +
   // RapidFire teaser
   '<p style="' + p + '">In the Tools, Tips and Tricks section, we discuss ' + ph(T.topic, '[SE topic this month]') +
     '. Join us for this month\'s RapidFire Demo on ' + ph(RF.weekday, '[weekday]') + ', ' + ph(RF.monthDay, '[month day]') +

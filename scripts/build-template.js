@@ -21,6 +21,27 @@ const SRC = path.join(__dirname, '..', 'FORTINET SE NEWSLETTER TEMPLATE.docx');
 const OUT_DIR = path.join(__dirname, '..', 'template');
 const OUT = path.join(OUT_DIR, 'newsletter.docx');
 
+// Remove the whole <w:p>…</w:p> that contains `marker`.
+function removeParagraphContaining(xml, marker) {
+  const idx = xml.indexOf(marker);
+  if (idx === -1) throw new Error('marker not found: ' + marker);
+  const pStart = xml.lastIndexOf('<w:p ', idx);
+  const pEnd = xml.indexOf('</w:p>', idx);
+  if (pStart === -1 || pEnd === -1) throw new Error('paragraph bounds not found for: ' + marker);
+  return xml.slice(0, pStart) + xml.slice(pEnd + '</w:p>'.length);
+}
+
+// Replace the text inside the <w:t> run that contains `marker` with `newInner`.
+function replaceRunTextContaining(xml, marker, newInner) {
+  const idx = xml.indexOf(marker);
+  if (idx === -1) throw new Error('marker not found: ' + marker);
+  const open = Math.max(xml.lastIndexOf('<w:t>', idx), xml.lastIndexOf('<w:t ', idx));
+  const openEnd = xml.indexOf('>', open);
+  const close = xml.indexOf('</w:t>', idx);
+  if (open === -1 || openEnd === -1 || close === -1) throw new Error('run bounds not found for: ' + marker);
+  return xml.slice(0, openEnd + 1) + newInner + xml.slice(close);
+}
+
 function main() {
   if (!fs.existsSync(SRC)) {
     console.error('Source not found:', SRC);
@@ -44,6 +65,13 @@ function main() {
 
   xml = xml.slice(0, bodyOpenEnd) + xml.slice(helloParaStart);
 
+  // 1b) Collapse the lead: the original has three big paragraphs (stories 1-3).
+  //     We want a SHORT intro blurb instead — the detailed stories live in the
+  //     Updates/news section. Keep paragraph 1 (as {leadBlurb}) and drop 2 & 3.
+  xml = removeParagraphContaining(xml, 'We are also excited to share that');
+  xml = removeParagraphContaining(xml, 'We are also announcing');
+  xml = replaceRunTextContaining(xml, 'we lead with [LEAD STORY HEADLINE', '{leadBlurb}');
+
   // 2) Firmware: 48 identical "[Product] [Version]" cells -> {fw1}..{fw48}
   let fwCount = 0;
   xml = xml.replace(/\[Product\] \[Version\]/g, () => '{fw' + (++fwCount) + '}');
@@ -54,18 +82,7 @@ function main() {
     // greeting
     [/\[RECIPIENT FIRST NAME\]/g, '{recipient}'],
 
-    // lead paragraph 1
-    [/\[LEAD STORY HEADLINE[^\]]*\]/g, '{leadHeadline}'],
-    [/\[2[^\]]*elaboration[^\]]*\]/g, '{leadElaboration}'],
-    [/\[1 sentence[^\]]*strategic implication[^\]]*\]/g, '{leadTakeaway}'],
-    // lead paragraph 2
-    [/\[STORY 2 HEADLINE[^\]]*\]/g, '{story2Headline}'],
-    [/\[2[^\]]*summary covering[^\]]*\]/g, '{story2Summary}'],
-    [/\[OPTIONAL[^\]]*\]/g, '{story2Quote}'],
-    // lead paragraph 3
-    [/\[STORY 3[^\]]*\]/g, '{story3What}'],
-    [/\[model names[^\]]*\]/g, '{story3Models}'],
-    [/\[3 key technical benefits[^\]]*\]/g, '{story3Benefits}'],
+    // (lead paragraphs are collapsed into {leadBlurb} above)
 
     // RapidFire teaser paragraph
     [/\[SE TOPIC THIS MONTH\]/g, '{tipsTopic}'],

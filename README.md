@@ -74,7 +74,7 @@ To enable the AI button locally, copy `.env.example` to `.env` and set `ANTHROPI
 3. Railway auto-detects Node and runs `npm start` (see `railway.json`). The committed `template/newsletter.docx` ships with the repo, so exports work out of the box.
 4. **(Optional) Variables** tab:
    - `ANTHROPIC_API_KEY` — enables AI generation.
-   - **`APP_PASSWORD`** — **set this whenever you set the API key on a public URL.** See [Securing a public deploy](#securing-a-public-deploy).
+   - **`AI_PASSWORD`** — **set this whenever you set the API key on a public URL.** It gates only the paid AI button; the editor stays open. See [Securing a public deploy](#securing-a-public-deploy).
    - *(optional)* `CLAUDE_MODEL` — defaults to `claude-sonnet-4-6`.
 5. Open the generated URL.
 
@@ -88,16 +88,16 @@ To enable the AI button locally, copy `.env.example` to `.env` and set `ANTHROPI
 | --- | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | No | — | Enables the **Generate with AI** button. |
 | `CLAUDE_MODEL` | No | `claude-sonnet-4-6` | Claude model used for AI generation. |
-| `APP_PASSWORD` | No | — | If set, the **whole app requires a login** (HTTP Basic). |
-| `APP_USER` | No | `admin` | Username for the login gate. |
+| `AI_PASSWORD` | No | — | If set, the **paid AI route requires this password**. The editor/exports stay open. |
 | `PORT` | No | `3000` | HTTP port. Set automatically by Railway. |
 
 ### Securing a public deploy
 
-The **Generate with AI** route calls the paid Claude API (with web search) on every click. On a public URL, anyone who finds it could trigger that and run up your bill. **If you set `ANTHROPIC_API_KEY` on a public deploy, set `APP_PASSWORD` too.**
+The **Generate with AI** route calls the paid Claude API (with web search) on every click. On a public URL, anyone who finds it could trigger that and run up your bill. **If you set `ANTHROPIC_API_KEY` on a public deploy, set `AI_PASSWORD` too.**
 
-- When `APP_PASSWORD` is set, **every** request — pages and APIs — requires HTTP Basic auth. Your browser prompts once and remembers it for the session.
-- When unset, the app is open (handy for local dev or an editor-only fork).
+- `AI_PASSWORD` gates **only** `POST /api/generate`. The editor, live preview, and Word/HTML exports stay open for everyone — so other SEs can still use the tool, but only you can trigger paid generation.
+- The browser asks for the password the first time you click **Generate with AI** and remembers it (in `localStorage`). A wrong password is rejected and cleared.
+- When unset, AI generation is open to anyone who can reach the page (the boot log warns about this).
 - Use a long, random passphrase. It's only read from the environment — never committed. Always serve over HTTPS (Railway does by default).
 
 ---
@@ -199,11 +199,7 @@ The app, the AI route, and the Word fill share one content model (defined in `pu
 ```jsonc
 {
   "month": "June", "year": "2026", "recipient": "everyone",
-  "lead": {
-    "headline": "", "elaboration": "", "takeaway": "",
-    "story2Headline": "", "story2Summary": "", "story2Quote": "",
-    "story3What": "", "story3Models": "", "story3Benefits": ""
-  },
+  "leadBlurb": "Short 1–3 sentence intro blurb (the full stories live in news[]).",
   "tips": { "topic": "", "rfTopic": "", "seOutcome": "" },
   "rapidFire": { "weekday": "Friday", "monthDay": "June 12" },
   "news": [ { "title": "", "body": "" }, /* … */ ],
