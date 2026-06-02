@@ -2,19 +2,12 @@
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'fortinet-se-newsletter';
+  var STORAGE_KEY = 'fortinet-se-newsletter-v2';
   var state = load() || NL.defaults();
 
-  // ---- persistence --------------------------------------------------------
-  function load() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); }
-    catch (_) { return null; }
-  }
-  function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
-  }
+  function load() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (_) { return null; } }
+  function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {} }
 
-  // ---- tiny helpers -------------------------------------------------------
   function $(id) { return document.getElementById(id); }
   function el(tag, attrs, html) {
     var n = document.createElement(tag);
@@ -23,63 +16,71 @@
     return n;
   }
   function toast(msg, isErr) {
-    var t = $('toast');
-    t.textContent = msg;
-    t.className = 'toast' + (isErr ? ' err' : '');
-    t.hidden = false;
-    clearTimeout(toast._t);
-    toast._t = setTimeout(function () { t.hidden = true; }, 2600);
+    var t = $('toast'); t.textContent = msg; t.className = 'toast' + (isErr ? ' err' : ''); t.hidden = false;
+    clearTimeout(toast._t); toast._t = setTimeout(function () { t.hidden = true; }, 2800);
   }
 
-  // ---- preview ------------------------------------------------------------
-  function renderPreview() {
-    var frame = $('preview-frame');
-    frame.srcdoc = NL.render(state);
-  }
-
+  function renderPreview() { $('preview-frame').srcdoc = NL.render(state); }
   var renderTimer;
-  function touch() {
-    save();
-    clearTimeout(renderTimer);
-    renderTimer = setTimeout(renderPreview, 120);
+  function touch() { save(); clearTimeout(renderTimer); renderTimer = setTimeout(renderPreview, 120); }
+
+  // bind an input to a nested path getter/setter
+  function bind(id, get, set) {
+    var node = $(id); if (!node) return;
+    if (node.type === 'checkbox') {
+      node.checked = !!get();
+      node.addEventListener('change', function () { set(node.checked); touch(); syncE4(); });
+    } else {
+      node.value = get() || '';
+      node.addEventListener('input', function () { set(node.value); touch(); });
+    }
   }
 
-  // ---- bind simple fields -------------------------------------------------
-  function bind(id, getter, setter) {
-    var node = $(id);
-    if (!node) return;
-    node.value = getter() || '';
-    node.addEventListener('input', function () { setter(node.value); touch(); });
-  }
+  function syncE4() { $('e4-fields').style.display = state.events.event4.enabled ? '' : 'none'; }
 
   function bindAll() {
-    bind('f-month', function () { return state.month; }, function (v) { state.month = v; });
-    bind('f-year', function () { return state.year; }, function (v) { state.year = v; });
-    bind('f-lead', function () { return state.lead; }, function (v) { state.lead = v; });
+    var d = state, L = d.lead, T = d.tips, RF = d.rapidFire, ev = d.events,
+        e2 = ev.event2, e3 = ev.event3, e4 = ev.event4;
 
-    state.rapidFire = state.rapidFire || {};
-    bind('f-rf-date', function () { return state.rapidFire.date; }, function (v) { state.rapidFire.date = v; });
-    bind('f-rf-time', function () { return state.rapidFire.time; }, function (v) { state.rapidFire.time = v; });
-    bind('f-rf-topic', function () { return state.rapidFire.topic; }, function (v) { state.rapidFire.topic = v; });
-    bind('f-rf-reg', function () { return state.rapidFire.registration; }, function (v) { state.rapidFire.registration = v; });
-    bind('f-tips', function () { return state.tipsTeaser; }, function (v) { state.tipsTeaser = v; });
+    bind('f-month', function () { return d.month; }, function (v) { d.month = v; });
+    bind('f-year', function () { return d.year; }, function (v) { d.year = v; });
+    bind('f-recipient', function () { return d.recipient; }, function (v) { d.recipient = v; });
 
-    state.evergreen = state.evergreen || NL.defaults().evergreen;
-    var ft = state.evergreen.fastTracks || (state.evergreen.fastTracks = {});
-    bind('f-ft-title', function () { return ft.title; }, function (v) { ft.title = v; });
-    bind('f-ft-body', function () { return ft.body; }, function (v) { ft.body = v; });
-    bind('f-ft-link', function () { return ft.link; }, function (v) { ft.link = v; });
-    var nse = state.evergreen.nseTraining || (state.evergreen.nseTraining = {});
-    bind('f-nse-title', function () { return nse.title; }, function (v) { nse.title = v; });
-    bind('f-nse-body', function () { return nse.body; }, function (v) { nse.body = v; });
-    bind('f-nse-link', function () { return nse.link; }, function (v) { nse.link = v; });
+    bind('f-l-headline', function () { return L.headline; }, function (v) { L.headline = v; });
+    bind('f-l-elaboration', function () { return L.elaboration; }, function (v) { L.elaboration = v; });
+    bind('f-l-takeaway', function () { return L.takeaway; }, function (v) { L.takeaway = v; });
+    bind('f-l-s2h', function () { return L.story2Headline; }, function (v) { L.story2Headline = v; });
+    bind('f-l-s2s', function () { return L.story2Summary; }, function (v) { L.story2Summary = v; });
+    bind('f-l-s2q', function () { return L.story2Quote; }, function (v) { L.story2Quote = v; });
+    bind('f-l-s3w', function () { return L.story3What; }, function (v) { L.story3What = v; });
+    bind('f-l-s3m', function () { return L.story3Models; }, function (v) { L.story3Models = v; });
+    bind('f-l-s3b', function () { return L.story3Benefits; }, function (v) { L.story3Benefits = v; });
+
+    bind('f-rf-weekday', function () { return RF.weekday; }, function (v) { RF.weekday = v; });
+    bind('f-rf-monthday', function () { return RF.monthDay; }, function (v) { RF.monthDay = v; });
+    bind('f-tips-topic', function () { return T.topic; }, function (v) { T.topic = v; });
+    bind('f-tips-rftopic', function () { return T.rfTopic; }, function (v) { T.rfTopic = v; });
+    bind('f-tips-outcome', function () { return T.seOutcome; }, function (v) { T.seOutcome = v; });
+
+    bind('f-e2-name', function () { return e2.name; }, function (v) { e2.name = v; });
+    bind('f-e2-when', function () { return e2.when; }, function (v) { e2.when = v; });
+    bind('f-e2-link', function () { return e2.link; }, function (v) { e2.link = v; });
+    bind('f-e2-topic', function () { return e2.topic; }, function (v) { e2.topic = v; });
+    bind('f-e3-name', function () { return e3.name; }, function (v) { e3.name = v; });
+    bind('f-e3-range', function () { return e3.dateRange; }, function (v) { e3.dateRange = v; });
+    bind('f-e3-desc', function () { return e3.desc; }, function (v) { e3.desc = v; });
+    bind('f-e4-enabled', function () { return e4.enabled; }, function (v) { e4.enabled = v; });
+    bind('f-e4-name', function () { return e4.name; }, function (v) { e4.name = v; });
+    bind('f-e4-when', function () { return e4.when; }, function (v) { e4.when = v; });
+    bind('f-e4-desc', function () { return e4.desc; }, function (v) { e4.desc = v; });
+
+    bind('f-signature', function () { return d.signature; }, function (v) { d.signature = v; });
 
     renderNews();
     renderFirmware();
-    renderEvents();
+    syncE4();
   }
 
-  // ---- dynamic lists ------------------------------------------------------
   function field(label, value, oninput, type) {
     var wrap = el('label', null, label);
     var input = el(type === 'textarea' ? 'textarea' : 'input');
@@ -91,150 +92,102 @@
   }
   function delBtn(onclick) {
     var b = el('button', { class: 'del', title: 'Remove' }, '✕');
-    b.addEventListener('click', onclick);
-    return b;
+    b.addEventListener('click', onclick); return b;
   }
 
   function renderNews() {
     var box = $('list-news'); box.innerHTML = '';
     (state.news || []).forEach(function (n, i) {
       var item = el('div', { class: 'item' });
-      item.appendChild(delBtn(function () { state.news.splice(i, 1); renderNews(); touch(); }));
-      item.appendChild(field('Headline', n.title, function (v) { n.title = v; }));
-      var row = el('div', { class: 'row two' });
-      row.appendChild(field('Date', n.date, function (v) { n.date = v; }));
-      row.appendChild(field('Link', n.link, function (v) { n.link = v; }, 'url'));
-      item.appendChild(row);
-      item.appendChild(field('Summary (2–4 sentences)', n.summary, function (v) { n.summary = v; }, 'textarea'));
+      if (state.news.length > 1) item.appendChild(delBtn(function () { state.news.splice(i, 1); renderNews(); touch(); }));
+      item.appendChild(field('Headline ' + (i + 1), n.title, function (v) { n.title = v; }));
+      item.appendChild(field('Body (2–4 sentences, end with a link)', n.body, function (v) { n.body = v; }, 'textarea'));
       box.appendChild(item);
     });
+    var add = el('button', { class: 'add' }, '+ add news item');
+    add.addEventListener('click', function (e) { e.preventDefault(); state.news.push({ title: '', body: '' }); renderNews(); touch(); });
+    box.appendChild(add);
   }
 
   function renderFirmware() {
     var box = $('list-firmware'); box.innerHTML = '';
-    (state.firmware || []).forEach(function (f, i) {
-      var item = el('div', { class: 'item' });
+    (state.firmware || []).forEach(function (val, i) {
+      var item = el('div', { class: 'item fw' });
       item.appendChild(delBtn(function () { state.firmware.splice(i, 1); renderFirmware(); touch(); }));
-      var row = el('div', { class: 'row three' });
-      row.appendChild(field('Product', f.product, function (v) { f.product = v; }));
-      row.appendChild(field('Version', f.version, function (v) { f.version = v; }));
-      row.appendChild(field('Note', f.note, function (v) { f.note = v; }));
-      item.appendChild(row);
+      var input = el('input'); input.type = 'text'; input.value = val || ''; input.placeholder = 'FortiOS 7.6.5 (May)';
+      input.addEventListener('input', function () { state.firmware[i] = input.value; touch(); });
+      item.appendChild(input);
       box.appendChild(item);
     });
   }
 
-  function renderEvents() {
-    var box = $('list-events'); box.innerHTML = '';
-    (state.events || []).forEach(function (e, i) {
-      var item = el('div', { class: 'item' });
-      item.appendChild(delBtn(function () { state.events.splice(i, 1); renderEvents(); touch(); }));
-      item.appendChild(field('Name', e.name, function (v) { e.name = v; }));
-      var row = el('div', { class: 'row two' });
-      row.appendChild(field('Date', e.date, function (v) { e.date = v; }));
-      row.appendChild(field('Time', e.time, function (v) { e.time = v; }));
-      item.appendChild(row);
-      item.appendChild(field('Description', e.description, function (v) { e.description = v; }, 'textarea'));
-      item.appendChild(field('Link', e.link, function (v) { e.link = v; }, 'url'));
-      box.appendChild(item);
-    });
-  }
-
-  // ---- add buttons --------------------------------------------------------
+  // add buttons in legends
   document.querySelectorAll('[data-add]').forEach(function (btn) {
     btn.addEventListener('click', function (ev) {
       ev.preventDefault();
-      var kind = btn.getAttribute('data-add');
-      if (kind === 'news') { (state.news = state.news || []).push({ title: '', date: '', summary: '', link: '' }); renderNews(); }
-      if (kind === 'firmware') { (state.firmware = state.firmware || []).push({ product: '', version: '', note: '' }); renderFirmware(); }
-      if (kind === 'events') { (state.events = state.events || []).push({ name: '', date: '', time: '', description: '', link: '' }); renderEvents(); }
-      touch();
+      if (btn.getAttribute('data-add') === 'firmware') { state.firmware.push(''); renderFirmware(); touch(); }
     });
   });
 
-  // ---- exports ------------------------------------------------------------
+  // ---- exports ----
   function copyHTML() {
     var html = NL.render(state);
-    navigator.clipboard.writeText(html).then(function () {
-      toast('HTML email copied — paste into Outlook/Gmail.');
-    }, function () {
-      // fallback
-      var ta = el('textarea'); ta.value = html; document.body.appendChild(ta);
-      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-      toast('HTML email copied.');
-    });
-  }
-  function downloadHTML() {
-    var blob = new Blob([NL.render(state)], { type: 'text/html' });
-    triggerDownload(blob, fileName('html'));
+    navigator.clipboard.writeText(html).then(function () { toast('HTML email copied — paste into Outlook/Gmail.'); },
+      function () {
+        var ta = el('textarea'); ta.value = html; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta); toast('HTML email copied.');
+      });
   }
   async function exportDocx() {
     var btn = $('btn-docx'); btn.disabled = true;
     try {
-      var resp = await fetch('/api/export/docx', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(state)
-      });
+      var resp = await fetch('/api/export/docx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(state) });
       if (!resp.ok) throw new Error('export failed');
       var blob = await resp.blob();
-      triggerDownload(blob, fileName('docx'));
-      toast('Word document downloaded.');
-    } catch (e) {
-      toast('Word export failed.', true);
-    } finally { btn.disabled = false; }
-  }
-  function fileName(ext) {
-    return ('Fortinet-SE-Newsletter-' + (state.month || 'month') + '-' + (state.year || '')).replace(/\s+/g, '-') + '.' + ext;
-  }
-  function triggerDownload(blob, name) {
-    var url = URL.createObjectURL(blob);
-    var a = el('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
+      var name = ('Fortinet-SE-Newsletter-' + (state.month || 'month') + '-' + (state.year || '')).replace(/\s+/g, '-') + '.docx';
+      var url = URL.createObjectURL(blob); var a = el('a'); a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+      toast('Word document downloaded — your real template, filled in.');
+    } catch (e) { toast('Word export failed.', true); } finally { btn.disabled = false; }
   }
 
-  // ---- AI generate --------------------------------------------------------
+  // ---- AI ----
   async function generate() {
-    if (!confirm('Generate this month\'s content with AI? This overwrites News, Firmware, Events, Lead and Tips (your evergreen blocks are kept).')) return;
-    var btn = $('btn-generate'); btn.disabled = true; btn.textContent = '✨ Researching…';
+    if (!confirm('Generate this month\'s content with AI? This overwrites the Lead, News, Firmware, Events and RapidFire date (your signature and the fixed template blocks are kept).')) return;
+    var btn = $('btn-generate'); btn.disabled = true; var label = btn.textContent; btn.textContent = '✨ Researching…';
     try {
-      var resp = await fetch('/api/generate', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ month: state.month, year: state.year })
-      });
+      var resp = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ month: state.month, year: state.year }) });
       var out = await resp.json();
       if (!resp.ok || !out.data) throw new Error(out.error || 'generation failed');
       var d = out.data;
-      // Merge AI fields; preserve evergreen + anything the model omitted.
-      ['lead', 'tipsTeaser'].forEach(function (k) { if (d[k] != null) state[k] = d[k]; });
+      if (d.lead) state.lead = Object.assign({}, state.lead, d.lead);
+      if (d.tips) state.tips = Object.assign({}, state.tips, d.tips);
+      if (d.rapidFire) state.rapidFire = Object.assign({}, state.rapidFire, d.rapidFire);
       if (Array.isArray(d.news) && d.news.length) state.news = d.news;
       if (Array.isArray(d.firmware) && d.firmware.length) state.firmware = d.firmware;
-      if (Array.isArray(d.events) && d.events.length) state.events = d.events;
-      if (d.rapidFire) state.rapidFire = Object.assign({}, state.rapidFire, d.rapidFire);
+      if (d.events) {
+        state.events.event2 = Object.assign({}, state.events.event2, d.events.event2 || {});
+        state.events.event3 = Object.assign({}, state.events.event3, d.events.event3 || {});
+        if (d.events.event4) state.events.event4 = Object.assign({}, state.events.event4, d.events.event4);
+      }
       if (d.month) state.month = d.month;
       if (d.year) state.year = String(d.year);
       bindAll(); touch();
-      toast('Draft generated — review every item against the source links.');
-    } catch (e) {
-      toast(e.message || 'AI generation failed.', true);
-    } finally {
-      btn.disabled = false; btn.textContent = '✨ Generate with AI';
-    }
+      toast('Draft generated — verify every figure, date and quote against the source links.');
+    } catch (e) { toast(e.message || 'AI generation failed.', true); }
+    finally { btn.disabled = false; btn.textContent = label; }
   }
 
-  // ---- reset --------------------------------------------------------------
   function reset() {
     if (!confirm('Clear everything and start from a blank template?')) return;
-    state = NL.defaults(); save(); bindAll(); renderPreview();
-    toast('Reset to a fresh template.');
+    state = NL.defaults(); save(); bindAll(); renderPreview(); toast('Reset to a fresh template.');
   }
 
-  // ---- wire up ------------------------------------------------------------
   $('btn-html').addEventListener('click', copyHTML);
-  $('btn-html-dl').addEventListener('click', downloadHTML);
   $('btn-docx').addEventListener('click', exportDocx);
   $('btn-reset').addEventListener('click', reset);
   $('btn-generate').addEventListener('click', generate);
 
-  // Show the AI button only if the server has a key configured.
   fetch('/api/config').then(function (r) { return r.json(); }).then(function (cfg) {
     if (cfg.aiEnabled) $('btn-generate').hidden = false;
   }).catch(function () {});

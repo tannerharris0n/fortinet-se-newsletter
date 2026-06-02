@@ -15,7 +15,6 @@
     <div class="actions">
       <button id="btn-generate" class="btn btn-ghost" hidden>✨ Generate with AI</button>
       <button id="btn-html" class="btn">Copy HTML email</button>
-      <button id="btn-html-dl" class="btn">Download .html</button>
       <button id="btn-docx" class="btn btn-primary">Export Word (.docx)</button>
       <button id="btn-reset" class="btn btn-quiet" title="Clear everything and start fresh">Reset</button>
     </div>
@@ -24,72 +23,93 @@
   <div id="toast" class="toast" hidden></div>
 
   <main class="layout">
-    <!-- EDITOR -->
     <section class="editor" id="editor">
+      <p class="lede">Edit the fields below, then export. The <strong>Word file uses your real template</strong> — fonts, firmware table, headers, Fast&nbsp;Tracks, NSE and signature are preserved. The <strong>Tools/Tips screenshot section</strong> is left for SEs to fill in Word.</p>
+
       <div class="row two">
         <label>Month <input id="f-month" type="text" placeholder="June" /></label>
         <label>Year <input id="f-year" type="text" placeholder="2026" /></label>
       </div>
+      <label>Greeting name <input id="f-recipient" type="text" placeholder="everyone" /></label>
 
       <fieldset>
-        <legend>Lead paragraph</legend>
-        <textarea id="f-lead" rows="4" placeholder="3–5 sentences tying the top story to a broader defender takeaway."></textarea>
+        <legend>Lead — top 3 stories</legend>
+        <div class="grp"><span class="grp-h">Story 1 (lead)</span>
+          <label>Headline (1 sentence) <input id="f-l-headline" type="text" /></label>
+          <label>Elaboration (2–3 sentences) <textarea id="f-l-elaboration" rows="2"></textarea></label>
+          <label>Takeaway for defenders (1 sentence) <input id="f-l-takeaway" type="text" /></label>
+        </div>
+        <div class="grp"><span class="grp-h">Story 2</span>
+          <label>Headline / partnership <input id="f-l-s2h" type="text" placeholder="a partnership with NVIDIA" /></label>
+          <label>Summary (2–3 sentences) <textarea id="f-l-s2s" rows="2"></textarea></label>
+          <label>Optional published quote <input id="f-l-s2q" type="text" placeholder="only if Fortinet published one" /></label>
+        </div>
+        <div class="grp"><span class="grp-h">Story 3</span>
+          <label>What's announced <input id="f-l-s3w" type="text" placeholder="a new FortiGate line" /></label>
+          <label>Models / product line <input id="f-l-s3m" type="text" /></label>
+          <label>3 key benefits (comma-separated) <input id="f-l-s3b" type="text" /></label>
+        </div>
       </fieldset>
 
       <fieldset>
-        <legend>Top Fortinet News <button class="add" data-add="news">+ add</button></legend>
+        <legend>RapidFire teaser &amp; date</legend>
+        <div class="row two">
+          <label>Weekday <input id="f-rf-weekday" type="text" placeholder="Friday" /></label>
+          <label>Month + day <input id="f-rf-monthday" type="text" placeholder="June 12" /></label>
+        </div>
+        <label>Tools/Tips topic this month (blank = SE fills) <input id="f-tips-topic" type="text" /></label>
+        <div class="row two">
+          <label>“a closer look at …” <input id="f-tips-rftopic" type="text" /></label>
+          <label>“…and how to …” <input id="f-tips-outcome" type="text" /></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Updates — news items</legend>
         <div id="list-news" class="list"></div>
       </fieldset>
 
       <fieldset>
-        <legend>Firmware released <button class="add" data-add="firmware">+ add row</button></legend>
+        <legend>Firmware released <button class="add" data-add="firmware">+ add row</button> <span class="hint">(fills the 4×12 table, ~16 max)</span></legend>
         <div id="list-firmware" class="list compact"></div>
       </fieldset>
 
       <fieldset>
-        <legend>RapidFire Q&amp;A</legend>
-        <div class="row two">
-          <label>Date <input id="f-rf-date" type="text" placeholder="June 12" /></label>
-          <label>Time <input id="f-rf-time" type="text" placeholder="11:30 AM PT" /></label>
+        <legend>Events <span class="hint">(RapidFire is fixed in the template)</span></legend>
+        <div class="grp"><span class="grp-h">Event 2 — Fortinet Summit / webinar</span>
+          <label>Name <input id="f-e2-name" type="text" /></label>
+          <div class="row two">
+            <label>When <input id="f-e2-when" type="text" placeholder="June 18 | 9:00 AM PT" /></label>
+            <label>Registration link <input id="f-e2-link" type="url" /></label>
+          </div>
+          <label>Topic (2–4 sentences) <textarea id="f-e2-topic" rows="2"></textarea></label>
         </div>
-        <label>Tools/Tips/Tricks topic (this month's demo)
-          <input id="f-rf-topic" type="text" placeholder="e.g. FortiGate ZTNA tags in 7.6" /></label>
-        <label>Registration link <input id="f-rf-reg" type="url" placeholder="https://..." /></label>
-        <label>Tips teaser sentence (leave blank for SE to fill)
-          <textarea id="f-tips" rows="2" placeholder="One sentence naming this month's demo topic."></textarea></label>
+        <div class="grp"><span class="grp-h">Event 3 — industry conference</span>
+          <label>Name <input id="f-e3-name" type="text" placeholder="Black Hat USA" /></label>
+          <label>Date range <input id="f-e3-range" type="text" placeholder="August 2–7" /></label>
+          <label>Description (1–2 sentences) <textarea id="f-e3-desc" rows="2"></textarea></label>
+        </div>
+        <div class="grp"><span class="grp-h">Event 4 — optional
+            <label class="inline"><input id="f-e4-enabled" type="checkbox" /> include</label></span>
+          <div id="e4-fields">
+            <label>Name <input id="f-e4-name" type="text" /></label>
+            <label>Date | Time | Timezone <input id="f-e4-when" type="text" /></label>
+            <label>Description <textarea id="f-e4-desc" rows="2"></textarea></label>
+          </div>
+        </div>
       </fieldset>
 
-      <fieldset>
-        <legend>Other events &amp; webinars <button class="add" data-add="events">+ add</button></legend>
-        <div id="list-events" class="list"></div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Evergreen blocks <span class="hint">(preserved each month — edit verbatim text)</span></legend>
-        <div class="ever">
-          <strong>Fortinet Fast Tracks</strong>
-          <label>Title <input id="f-ft-title" type="text" /></label>
-          <label>Body <textarea id="f-ft-body" rows="2"></textarea></label>
-          <label>Link <input id="f-ft-link" type="url" /></label>
-        </div>
-        <div class="ever">
-          <strong>NSE Training</strong>
-          <label>Title <input id="f-nse-title" type="text" /></label>
-          <label>Body <textarea id="f-nse-body" rows="2"></textarea></label>
-          <label>Link <input id="f-nse-link" type="url" /></label>
-        </div>
-      </fieldset>
+      <label>SE signature <input id="f-signature" type="text" placeholder="Your name / signature block" /></label>
 
       <p class="disclaimer">
         Personal side project — not affiliated with, endorsed by, or sponsored by Fortinet, Inc.
-        All product names and brands are property of their respective owners. Content is compiled
-        from publicly available Fortinet sources.
+        All product names and brands are property of their respective owners. Content compiled from
+        publicly available Fortinet sources.
       </p>
     </section>
 
-    <!-- PREVIEW -->
     <section class="preview">
-      <div class="preview-head">Live preview</div>
+      <div class="preview-head">Live preview <span>· approximate — Word export is the real layout</span></div>
       <iframe id="preview-frame" title="Newsletter preview"></iframe>
     </section>
   </main>
